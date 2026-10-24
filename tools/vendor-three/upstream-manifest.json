@@ -1,0 +1,12 @@
+{
+  "name": "three",
+  "version": "0.186.1",
+  "gitHead": "9b4a2ac29c63ccb43fd51c5661f2f873ac2c39b8",
+  "source_url": "https://registry.npmjs.org/three/-/three-0.186.1.tgz",
+  "source_sha256": "8cd068708ea44f2c73c944b1cead2ba2f0d5c15c8fc194e5700f4e4f4a033fe7",
+  "integrity": "sha512-blFeqb49wRCSGUGj7gtpfnSGHy2lwDk94RhUmS1c/hTby70kvChbWpkJ4Pm1390LqzzvTmzgXKHPEafJwCb8jA==",
+  "source_files_count": 754,
+  "source_tree_manifest_sha256": "d82626f1bd454e88649d7f84e578148a5e2ad932290fad422f4307a1629e2b70",
+  "license": "MIT",
+  "license_sha256": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc"
+}

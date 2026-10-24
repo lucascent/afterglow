@@ -1,0 +1,42 @@
+--- a/test/unit/src/animation/tracks/ColorKeyframeTrack.tests.js
++++ b/test/unit/src/animation/tracks/ColorKeyframeTrack.tests.js
+@@ -11,7 +11,7 @@
+ 			const parameters = {
+ 				name: '.material.diffuse',
+ 				times: [ 0, 1 ],
+-				values: [ 0, 0.5, 1.0 ],
++				values: [ 0, 0.5, 1.0, 1.0, 0.5, 0 ],
+ 				interpolation: ColorKeyframeTrack.DefaultInterpolation
+ 			};
+ 
+--- a/test/unit/src/math/interpolants/QuaternionLinearInterpolant.tests.js
++++ b/test/unit/src/math/interpolants/QuaternionLinearInterpolant.tests.js
+@@ -11,7 +11,7 @@
+ 			// INHERITANCE
+ 			QUnit.test( 'Extending', ( assert ) => {
+ 
+-				const object = new QuaternionLinearInterpolant( null, [ 1, 11, 2, 22, 3, 33 ], 2, [] );
++				const object = new QuaternionLinearInterpolant( [ 0, 1 ], [ 0, 0, 0, 1, 0, 1, 0, 0 ], 4, [] );
+ 				assert.strictEqual(
+ 					object instanceof Interpolant, true,
+ 					'QuaternionLinearInterpolant extends from Interpolant'
+@@ -23,7 +23,7 @@
+ 			QUnit.test( 'Instancing', ( assert ) => {
+ 
+ 				// parameterPositions, sampleValues, sampleSize, resultBuffer
+-				const object = new QuaternionLinearInterpolant( null, [ 1, 11, 2, 22, 3, 33 ], 2, [] );
++				const object = new QuaternionLinearInterpolant( [ 0, 1 ], [ 0, 0, 0, 1, 0, 1, 0, 0 ], 4, [] );
+ 				assert.ok( object, 'Can instantiate a QuaternionLinearInterpolant.' );
+ 
+ 			} );
+--- a/test/unit/src/math/Interpolant.tests.js
++++ b/test/unit/src/math/Interpolant.tests.js
+@@ -77,7 +77,7 @@
+ 
+ 			let actual, expect;
+ 
+-			const interpolant = new Mock( [ 11, 22, 33, 44, 55, 66, 77, 88, 99 ], null, 0, null );
++			const interpolant = new Mock( [ 11, 22, 33, 44, 55, 66, 77, 88, 99 ], [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], 1, [] );
+ 
+ 			Mock.calls = [];
+ 			interpolant.evaluate( 11 );

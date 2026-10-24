@@ -1,0 +1,10 @@
+{
+  "name": "afterglow-three-vendor-build",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "qunit": "2.25.0",
+    "rollup": "4.63.1",
+    "terser": "5.51.2"
+  }
+}

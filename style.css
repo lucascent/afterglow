@@ -1,0 +1,405 @@
+/* Afterglow — the page around the picture: a road at dusk that fills the window, two words in its
+   corners, and the Tune panel. Everything in the picture itself is drawn by src/. */
+
+/* Newsreader, by Production Type (SIL Open Font License, fonts/OFL.txt) */
+@font-face {
+  font-family: "Newsreader";
+  src: url("fonts/Newsreader.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Newsreader";
+  src: url("fonts/Newsreader-Italic.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  --paper: #0a0d0d;
+  --ink: #f4f1ea;
+  --faint: #d6d2c8;
+  --press: color-mix(in srgb, var(--faint), var(--ink) 35%);
+  --serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+
+  /* the words keep clear of a phone's notch and the bar at its foot */
+  --edge: clamp(1.25rem, 3vw, 2.5rem);
+  --edge-t: calc(var(--edge) + env(safe-area-inset-top, 0px));
+  --edge-b: max(var(--edge), calc(env(safe-area-inset-bottom, 0px) + 0.25rem));
+  --edge-x: max(var(--edge), env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+
+  color-scheme: dark;
+}
+
+html {
+  background: var(--paper);
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font: 400 1rem / 1.5 var(--serif);
+  font-optical-sizing: auto;
+  font-variant-numeric: lining-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* it comes up out of the dark once its first frame is drawn */
+.road {
+  position: fixed;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 2.4s cubic-bezier(0.33, 0, 0.2, 1);
+}
+
+.is-arrived .road { opacity: 1; }
+
+/* where the road cannot be drawn, one line says so */
+.road__none:not([hidden]) {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: var(--edge-x);
+  color: var(--faint);
+  font-style: italic;
+  text-align: center;
+}
+
+
+/* ── The corners ───────────────────────────────────────── */
+
+/* The words lie on forest one moment and on sky the next. A wide, soft shade under each keeps them
+   readable on either, without drawing a box round them. */
+.corners {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  color: var(--faint);
+  font-size: 0.8125rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 0.9em rgb(0 0 0 / 0.55), 0 0 0.2em rgb(0 0 0 / 0.35);
+}
+
+.corners > * { position: absolute; }
+
+.corners__name {
+  top: var(--edge-t);
+  left: var(--edge-x);
+  letter-spacing: 0.14em;
+}
+
+/* the one thing here that can be pressed; the padding is only there for the finger */
+.corners__tune {
+  --pad: 0.75rem;
+  --pad-y: var(--pad);
+  top: calc(var(--edge-t) - var(--pad-y));
+  right: calc(var(--edge-x) - var(--pad));
+  margin: 0;
+  padding: var(--pad-y) var(--pad);
+  border: 0;
+  background: none;
+  color: var(--press);
+  font: inherit;
+  letter-spacing: inherit;
+  text-shadow: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  transition: color 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (pointer: coarse) {
+  .corners__tune { --pad-y: 1rem; }
+}
+
+.corners__tune:focus-visible,
+.corners__tune:active,
+.corners__tune[aria-expanded="true"] { color: var(--ink); }
+
+@media (hover: hover) {
+  .corners__tune:hover { color: var(--ink); }
+}
+
+.corners__tune:focus-visible {
+  outline: 1px solid var(--faint);
+  outline-offset: -0.35rem;
+}
+
+/* only the language asked for (?lang=…) is set beside the English */
+.corners__tune [lang] {
+  display: none;
+  margin-left: 0.6em;
+  font-size: 0.6875rem;
+  opacity: 0.7;
+}
+
+[data-beside="zh"] .corners__tune [lang="zh-Hant"],
+[data-beside="ja"] .corners__tune [lang="ja"],
+[data-beside="ko"] .corners__tune [lang="ko"],
+[data-beside="es"] .corners__tune [lang="es"],
+[data-beside="fr"] .corners__tune [lang="fr"] { display: inline; }
+
+
+/* ── Tune ──────────────────────────────────────────────── */
+
+/* The scene's numbers, for whoever wants to turn them. Shut until its word in the corner is pressed.
+   It is set the way the corners are (small, spaced, in the faint ink) on a pane of darkened glass, so the
+   road can still be watched through and beside it while it is being changed. */
+.tune {
+  position: fixed;
+  top: calc(var(--edge-t) + 2.25rem);
+  right: var(--edge-x);
+  z-index: 1;
+  box-sizing: border-box;
+  width: min(19rem, calc(100vw - 2 * var(--edge-x)));
+  max-height: calc(100vh - var(--edge-t) - var(--edge-b) - 5.5rem);
+  max-height: calc(100dvh - var(--edge-t) - var(--edge-b) - 5.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.2) transparent;
+  padding: 0.125rem 1rem 0.875rem;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 0.25rem;
+  background: rgb(8 11 11 / 0.6);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  color: var(--faint);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0s 0.5s;
+}
+
+.tune.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.5s ease;
+}
+
+.tune fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.tune legend {
+  padding: 0.875rem 0 0.125rem;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* a name, a way back (only once it has been moved), its number; under them the thing that moves it */
+.tune__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  column-gap: 0.625rem;
+  padding-top: 0.5rem;
+}
+
+.tune__row label { grid-column: 1; }
+.tune__undo { grid-column: 2; }
+
+.tune__row output,
+.tune input[type="color"] { grid-column: 3; }
+
+.tune__row output {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums lining-nums;
+  text-align: right;
+}
+
+.tune [lang] {
+  margin-left: 0.6em;
+  font-size: 0.6875rem;
+  opacity: 0.7;
+}
+
+.tune [lang]:not([lang|="zh"]) { white-space: nowrap; }
+.tune :is(legend, .tune__undo) :is([lang|="es"], [lang|="fr"]) { font-style: normal; }
+
+/* a longer label in another language keeps its place beside the number; its reset goes below the slider */
+html[data-beside]:not([data-beside="zh"]) .tune__undo {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-self: end;
+  margin-block: 0;
+}
+
+.tune button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: color 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tune button:focus-visible,
+.tune button:active { color: var(--ink); }
+
+@media (hover: hover) {
+  .tune button:hover { color: var(--ink); }
+}
+
+.tune__undo {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* a hair for the track and a dot of ink to move along it */
+.tune input[type="range"] {
+  grid-column: 1 / -1;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 1.25rem;
+  margin: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.tune input[type="range"]::-webkit-slider-runnable-track {
+  height: 1px;
+  background: rgb(255 255 255 / 0.28);
+}
+
+.tune input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 0.6875rem;
+  height: 0.6875rem;
+  margin-top: calc(0.5px - 0.34375rem);
+  border: 0;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.tune input[type="range"]::-moz-range-track {
+  height: 1px;
+  background: rgb(255 255 255 / 0.28);
+}
+
+.tune input[type="range"]::-moz-range-thumb {
+  width: 0.6875rem;
+  height: 0.6875rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+/* a colour is a small pane of itself */
+.tune input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 2.25rem;
+  height: 1.125rem;
+  margin: 0.125rem 0;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  border-radius: 2px;
+  background: none;
+  cursor: pointer;
+}
+
+.tune input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.tune input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 1px; }
+.tune input[type="color"]::-moz-color-swatch { border: 0; }
+
+.tune__check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  cursor: pointer;
+}
+
+.tune__check input {
+  margin: 0;
+  accent-color: var(--faint);
+}
+
+.tune__check [lang] { margin-left: 0.6em; }
+
+.tune__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin-top: 0.875rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgb(255 255 255 / 0.1);
+}
+
+.tune :focus-visible {
+  outline: 1px solid var(--faint);
+  outline-offset: 0.2rem;
+}
+
+/* a fingertip needs more than a dot of ink and a line of small type. The dot stays the size it is;
+   only the ground around it that can be pressed grows */
+@media (pointer: coarse) {
+  .tune input[type="range"] { height: 2rem; }
+
+  .tune input[type="range"]::-webkit-slider-thumb {
+    box-sizing: content-box;
+    margin-top: calc(0.5px - 0.34375rem - 0.5rem);
+    border: 0.5rem solid transparent;
+    background-clip: content-box;
+  }
+
+  .tune input[type="range"]::-moz-range-thumb {
+    box-sizing: content-box;
+    border: 0.5rem solid transparent;
+    background-clip: content-box;
+  }
+
+  .tune__undo {
+    padding: 0.5rem 0.25rem;
+    margin: -0.5rem -0.25rem;
+  }
+
+  .tune__actions { gap: 0 1.25rem; }
+  .tune__actions button { padding: 0.75rem 0 0.5rem; }
+}
+
+/* on a phone it comes up from the foot instead, and leaves the upper half of the road to be seen */
+@media (max-width: 44rem) {
+  .tune {
+    top: auto;
+    bottom: var(--edge-b);
+    left: var(--edge-x);
+    width: auto;
+    max-height: 48vh;
+    max-height: 48dvh;
+  }
+}

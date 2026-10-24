@@ -1,0 +1,508 @@
+--- a/src/animation/AnimationMixer.js
++++ b/src/animation/AnimationMixer.js
+@@ -70,7 +70,7 @@
+ 
+ 		if ( bindingsByName === undefined ) {
+ 
+-			bindingsByName = {};
++			bindingsByName = Object.create( null );
+ 			bindingsByRoot[ rootUuid ] = bindingsByName;
+ 
+ 		}
+@@ -201,7 +201,7 @@
+ 		this._actions = []; // 'nActiveActions' followed by inactive ones
+ 		this._nActiveActions = 0;
+ 
+-		this._actionsByClip = {};
++		this._actionsByClip = Object.create( null );
+ 		// inside:
+ 		// {
+ 		// 	knownActions: Array< AnimationAction > - used as prototypes
+@@ -212,7 +212,7 @@
+ 		this._bindings = []; // 'nActiveBindings' followed by inactive ones
+ 		this._nActiveBindings = 0;
+ 
+-		this._bindingsByRootAndName = {}; // inside: Map< name, PropertyMixer >
++		this._bindingsByRootAndName = Object.create( null ); // inside: Map< name, PropertyMixer >
+ 
+ 
+ 		this._controlInterpolants = []; // same game as above
+@@ -284,7 +284,7 @@
+ 			actionsForClip = {
+ 
+ 				knownActions: [ action ],
+-				actionByRoot: {}
++				actionByRoot: Object.create( null )
+ 
+ 			};
+ 
+@@ -428,7 +428,7 @@
+ 
+ 		if ( bindingByName === undefined ) {
+ 
+-			bindingByName = {};
++			bindingByName = Object.create( null );
+ 			bindingsByRoot[ rootUuid ] = bindingByName;
+ 
+ 		}
+--- a/src/animation/AnimationUtils.js
++++ b/src/animation/AnimationUtils.js
+@@ -69,6 +69,12 @@
+  */
+ function sortedArray( values, stride, order ) {
+ 
++	if ( ! Number.isSafeInteger( stride ) || stride <= 0 || values.length % stride !== 0 ) {
++
++		throw new RangeError( 'THREE.AnimationUtils: Invalid stride.' );
++
++	}
++
+ 	const nValues = values.length;
+ 	const result = new values.constructor( nValues );
+ 
+@@ -76,7 +82,7 @@
+ 
+ 		const srcOffset = order[ i ] * stride;
+ 
+-		for ( let j = 0; j !== stride; ++ j ) {
++		for ( let j = 0; j < stride; ++ j ) {
+ 
+ 			result[ dstOffset ++ ] = values[ srcOffset + j ];
+ 
+--- a/src/animation/KeyframeTrack.js
++++ b/src/animation/KeyframeTrack.js
+@@ -54,6 +54,8 @@
+ 		 */
+ 		this.values = AnimationUtils.convertArray( values, this.ValueBufferType );
+ 
++		this.getValueSize(); // Reject malformed dimensions before any interpolant or optimizer.
++
+ 		this.setInterpolation( interpolation || this.DefaultInterpolation );
+ 
+ 	}
+@@ -283,7 +285,15 @@
+ 	 */
+ 	getValueSize() {
+ 
+-		return this.values.length / this.times.length;
++		const valueSize = this.values.length / this.times.length;
++		if ( ! Number.isSafeInteger( valueSize ) || valueSize <= 0 ||
++			( this.ValueTypeName === 'quaternion' && valueSize % 4 !== 0 ) ) {
++
++			throw new RangeError( 'THREE.KeyframeTrack: Invalid value size.' );
++
++		}
++
++		return valueSize;
+ 
+ 	}
+ 
+@@ -516,7 +526,7 @@
+ 						offsetP = offset - stride,
+ 						offsetN = offset + stride;
+ 
+-					for ( let j = 0; j !== stride; ++ j ) {
++					for ( let j = 0; j < stride; ++ j ) {
+ 
+ 						const value = values[ offset + j ];
+ 
+@@ -549,7 +559,7 @@
+ 					const readOffset = i * stride,
+ 						writeOffset = writeIndex * stride;
+ 
+-					for ( let j = 0; j !== stride; ++ j ) {
++					for ( let j = 0; j < stride; ++ j ) {
+ 
+ 						values[ writeOffset + j ] = values[ readOffset + j ];
+ 
+@@ -569,7 +579,7 @@
+ 
+ 			times[ writeIndex ] = times[ lastIndex ];
+ 
+-			for ( let readOffset = lastIndex * stride, writeOffset = writeIndex * stride, j = 0; j !== stride; ++ j ) {
++			for ( let readOffset = lastIndex * stride, writeOffset = writeIndex * stride, j = 0; j < stride; ++ j ) {
+ 
+ 				values[ writeOffset + j ] = values[ readOffset + j ];
+ 
+--- a/src/animation/PropertyBinding.js
++++ b/src/animation/PropertyBinding.js
+@@ -1,3 +1,9 @@
++import { Material } from '../materials/Material.js';
++import { MeshPhysicalMaterial } from '../materials/MeshPhysicalMaterial.js';
++import { Euler } from '../math/Euler.js';
++import { Quaternion } from '../math/Quaternion.js';
++import { Vector2 } from '../math/Vector2.js';
++import { Vector4 } from '../math/Vector4.js';
+ import { warn, error } from '../utils.js';
+ // Characters [].:/ are reserved for track binding syntax.
+ const _RESERVED_CHARS_RE = '\\[\\]\\.:\\/';
+@@ -35,6 +41,39 @@
+ 
+ const _supportedObjectNames = [ 'material', 'materials', 'bones', 'map' ];
+ 
++
++// Serialized paths may name scene data, never reflective JavaScript properties.
++function validateBindingPath( path ) {
++
++	for ( const field of [ 'objectName', 'objectIndex', 'propertyName', 'propertyIndex' ] ) {
++
++		const key = path[ field ];
++		if ( key === undefined && field !== 'propertyName' ) continue;
++		if ( ( typeof key !== 'string' && typeof key !== 'number' ) ||
++			key === '__proto__' || key === 'prototype' || key === 'constructor' ) {
++
++			throw new Error( 'THREE.PropertyBinding: Unsafe property path.' );
++
++		}
++
++	}
++
++}
++
++function hasBindingProperty( object, key ) {
++
++	if ( object === null || object === undefined ) return false;
++	if ( Object.hasOwn( object, key ) ) return true;
++
++	// These public math components are trusted accessors on library prototypes.
++	return ( object instanceof Euler && ( key === 'x' || key === 'y' || key === 'z' || key === 'order' ) ) ||
++		( object instanceof Quaternion && ( key === 'x' || key === 'y' || key === 'z' || key === 'w' ) ) ||
++		( ( object instanceof Vector2 || object instanceof Vector4 ) && ( key === 'width' || key === 'height' ) ) ||
++		( object instanceof Material && key === 'alphaTest' ) ||
++		( object instanceof MeshPhysicalMaterial && [ 'anisotropy', 'clearcoat', 'iridescence', 'dispersion', 'retroreflectivity', 'sheen', 'transmission' ].includes( key ) );
++
++}
++
+ class Composite {
+ 
+ 	constructor( targetGroup, path, optionalParsedPath ) {
+@@ -130,6 +169,7 @@
+ 		 * @type {Object}
+ 		 */
+ 		this.parsedPath = parsedPath || PropertyBinding.parseTrackName( path );
++		validateBindingPath( this.parsedPath );
+ 
+ 		/**
+ 		 * The object owns the animated property.
+@@ -250,6 +290,7 @@
+ 
+ 		}
+ 
++		validateBindingPath( results );
+ 		return results;
+ 
+ 	}
+@@ -488,6 +529,7 @@
+ 
+ 		let targetObject = this.node;
+ 		const parsedPath = this.parsedPath;
++		validateBindingPath( parsedPath );
+ 
+ 		const objectName = parsedPath.objectName;
+ 		const propertyName = parsedPath.propertyName;
+@@ -522,14 +564,14 @@
+ 
+ 				case 'materials':
+ 
+-					if ( ! targetObject.material ) {
++					if ( ! Object.hasOwn( targetObject, 'material' ) || ! targetObject.material ) {
+ 
+ 						error( 'PropertyBinding: Can not bind to material as node does not have a material.', this );
+ 						return;
+ 
+ 					}
+ 
+-					if ( ! targetObject.material.materials ) {
++					if ( ! Object.hasOwn( targetObject.material, 'materials' ) || ! targetObject.material.materials ) {
+ 
+ 						error( 'PropertyBinding: Can not bind to material.materials as node.material does not have a materials array.', this );
+ 						return;
+@@ -542,7 +584,7 @@
+ 
+ 				case 'bones':
+ 
+-					if ( ! targetObject.skeleton ) {
++					if ( ! Object.hasOwn( targetObject, 'skeleton' ) || ! targetObject.skeleton || ! Object.hasOwn( targetObject.skeleton, 'bones' ) ) {
+ 
+ 						error( 'PropertyBinding: Can not bind to bones as node does not have a skeleton.', this );
+ 						return;
+@@ -570,21 +612,21 @@
+ 
+ 				case 'map':
+ 
+-					if ( 'map' in targetObject ) {
++					if ( Object.hasOwn( targetObject, 'map' ) ) {
+ 
+ 						targetObject = targetObject.map;
+ 						break;
+ 
+ 					}
+ 
+-					if ( ! targetObject.material ) {
++					if ( ! Object.hasOwn( targetObject, 'material' ) || ! targetObject.material ) {
+ 
+ 						error( 'PropertyBinding: Can not bind to material as node does not have a material.', this );
+ 						return;
+ 
+ 					}
+ 
+-					if ( ! targetObject.material.map ) {
++					if ( ! Object.hasOwn( targetObject.material, 'map' ) || ! targetObject.material.map ) {
+ 
+ 						error( 'PropertyBinding: Can not bind to material.map as node.material does not have a map.', this );
+ 						return;
+@@ -596,7 +638,7 @@
+ 
+ 				default:
+ 
+-					if ( targetObject[ objectName ] === undefined ) {
++					if ( ! Object.hasOwn( targetObject, objectName ) || targetObject[ objectName ] === undefined ) {
+ 
+ 						error( 'PropertyBinding: Can not bind to objectName of node undefined.', this );
+ 						return;
+@@ -610,7 +652,7 @@
+ 
+ 			if ( objectIndex !== undefined ) {
+ 
+-				if ( targetObject[ objectIndex ] === undefined ) {
++				if ( ! Object.hasOwn( targetObject, objectIndex ) || targetObject[ objectIndex ] === undefined ) {
+ 
+ 					error( 'PropertyBinding: Trying to bind to objectIndex of objectName, but is undefined.', this, targetObject );
+ 					return;
+@@ -624,7 +666,7 @@
+ 		}
+ 
+ 		// resolve property
+-		const nodeProperty = targetObject[ propertyName ];
++		const nodeProperty = hasBindingProperty( targetObject, propertyName ) ? targetObject[ propertyName ] : undefined;
+ 
+ 		if ( nodeProperty === undefined ) {
+ 
+@@ -677,11 +719,17 @@
+ 
+ 				}
+ 
+-				if ( targetObject.morphTargetDictionary[ propertyIndex ] !== undefined ) {
++				if ( targetObject.morphTargetDictionary && Object.hasOwn( targetObject.morphTargetDictionary, propertyIndex ) ) {
+ 
+ 					propertyIndex = targetObject.morphTargetDictionary[ propertyIndex ];
+ 
+ 				}
++
++			}
++
++			if ( ! hasBindingProperty( nodeProperty, propertyIndex ) ) {
++
++				throw new Error( 'THREE.PropertyBinding: Invalid property index.' );
+ 
+ 			}
+ 
+--- a/src/animation/PropertyMixer.js
++++ b/src/animation/PropertyMixer.js
+@@ -14,6 +14,13 @@
+ 	 */
+ 	constructor( binding, typeName, valueSize ) {
+ 
++		if ( ! Number.isSafeInteger( valueSize ) || valueSize <= 0 ||
++			( typeName === 'quaternion' && valueSize % 4 !== 0 ) ) {
++
++			throw new RangeError( 'THREE.PropertyMixer: Invalid value size.' );
++
++		}
++
+ 		/**
+ 		 * The property binding.
+ 		 *
+@@ -142,7 +149,7 @@
+ 
+ 			// accuN := incoming * weight
+ 
+-			for ( let i = 0; i !== stride; ++ i ) {
++			for ( let i = 0; i < stride; ++ i ) {
+ 
+ 				buffer[ offset + i ] = buffer[ i ];
+ 
+@@ -228,7 +235,7 @@
+ 
+ 		}
+ 
+-		for ( let i = stride, e = stride + stride; i !== e; ++ i ) {
++		for ( let i = stride, e = stride + stride; i < e; ++ i ) {
+ 
+ 			if ( buffer[ i ] !== buffer[ i + stride ] ) {
+ 
+@@ -259,7 +266,7 @@
+ 		binding.getValue( buffer, originalValueOffset );
+ 
+ 		// accu[0..1] := orig -- initially detect changes against the original
+-		for ( let i = stride, e = originalValueOffset; i !== e; ++ i ) {
++		for ( let i = stride, e = originalValueOffset; i < e; ++ i ) {
+ 
+ 			buffer[ i ] = buffer[ originalValueOffset + ( i % stride ) ];
+ 
+@@ -325,7 +332,7 @@
+ 
+ 		if ( t >= 0.5 ) {
+ 
+-			for ( let i = 0; i !== stride; ++ i ) {
++			for ( let i = 0; i < stride; ++ i ) {
+ 
+ 				buffer[ dstOffset + i ] = buffer[ srcOffset + i ];
+ 
+@@ -357,7 +364,7 @@
+ 
+ 		const s = 1 - t;
+ 
+-		for ( let i = 0; i !== stride; ++ i ) {
++		for ( let i = 0; i < stride; ++ i ) {
+ 
+ 			const j = dstOffset + i;
+ 
+@@ -369,7 +376,7 @@
+ 
+ 	_lerpAdditive( buffer, dstOffset, srcOffset, t, stride ) {
+ 
+-		for ( let i = 0; i !== stride; ++ i ) {
++		for ( let i = 0; i < stride; ++ i ) {
+ 
+ 			const j = dstOffset + i;
+ 
+--- a/src/extras/curves/EllipseCurve.js
++++ b/src/extras/curves/EllipseCurve.js
+@@ -136,9 +136,19 @@
+ 		let deltaAngle = this.aEndAngle - this.aStartAngle;
+ 		const samePoints = Math.abs( deltaAngle ) < Number.EPSILON;
+ 
+-		// ensures that deltaAngle is 0 .. 2 PI
+-		while ( deltaAngle < 0 ) deltaAngle += twoPi;
+-		while ( deltaAngle > twoPi ) deltaAngle -= twoPi;
++		if ( ! Number.isFinite( this.aStartAngle ) || ! Number.isFinite( this.aEndAngle ) || ! Number.isFinite( deltaAngle ) ) {
++
++			throw new RangeError( 'THREE.EllipseCurve: Angles and their difference must be finite.' );
++
++		}
++
++		// Bounded normalization also makes progress for very large finite angles.
++		if ( deltaAngle < 0 || deltaAngle > twoPi ) {
++
++			deltaAngle %= twoPi;
++			if ( deltaAngle < 0 ) deltaAngle += twoPi;
++
++		}
+ 
+ 		if ( deltaAngle < Number.EPSILON ) {
+ 
+--- a/src/math/Interpolant.js
++++ b/src/math/Interpolant.js
+@@ -28,6 +28,12 @@
+ 	 * @param {TypedArray} [resultBuffer] - The result buffer.
+ 	 */
+ 	constructor( parameterPositions, sampleValues, sampleSize, resultBuffer ) {
++
++		if ( ! sampleValues || sampleValues.length === 0 || ! Number.isSafeInteger( sampleSize ) || sampleSize <= 0 || sampleSize > sampleValues.length ) {
++
++			throw new RangeError( 'THREE.Interpolant: Invalid sample size.' );
++
++		}
+ 
+ 		/**
+ 		 * The parameter positions.
+@@ -275,7 +281,7 @@
+ 			stride = this.valueSize,
+ 			offset = index * stride;
+ 
+-		for ( let i = 0; i !== stride; ++ i ) {
++		for ( let i = 0; i < stride; ++ i ) {
+ 
+ 			result[ i ] = values[ offset + i ];
+ 
+--- a/src/math/interpolants/BezierInterpolant.js
++++ b/src/math/interpolants/BezierInterpolant.js
+@@ -37,7 +37,7 @@
+ 			const weight1 = ( t - t0 ) / ( t1 - t0 );
+ 			const weight0 = 1 - weight1;
+ 
+-			for ( let i = 0; i !== stride; ++ i ) {
++			for ( let i = 0; i < stride; ++ i ) {
+ 
+ 				result[ i ] = values[ offset0 + i ] * weight0 + values[ offset1 + i ] * weight1;
+ 
+@@ -50,7 +50,7 @@
+ 		const tangentStride = stride * 2;
+ 		const i0 = i1 - 1;
+ 
+-		for ( let i = 0; i !== stride; ++ i ) {
++		for ( let i = 0; i < stride; ++ i ) {
+ 
+ 			const v0 = values[ offset0 + i ];
+ 			const v1 = values[ offset1 + i ];
+--- a/src/math/interpolants/CubicInterpolant.js
++++ b/src/math/interpolants/CubicInterpolant.js
+@@ -140,7 +140,7 @@
+ 
+ 		// combine data linearly
+ 
+-		for ( let i = 0; i !== stride; ++ i ) {
++		for ( let i = 0; i < stride; ++ i ) {
+ 
+ 			result[ i ] =
+ 					sP * values[ oP + i ] +
+--- a/src/math/interpolants/LinearInterpolant.js
++++ b/src/math/interpolants/LinearInterpolant.js
+@@ -33,7 +33,7 @@
+ 			weight1 = ( t - t0 ) / ( t1 - t0 ),
+ 			weight0 = 1 - weight1;
+ 
+-		for ( let i = 0; i !== stride; ++ i ) {
++		for ( let i = 0; i < stride; ++ i ) {
+ 
+ 			result[ i ] =
+ 					values[ offset0 + i ] * weight0 +
+--- a/src/math/interpolants/QuaternionLinearInterpolant.js
++++ b/src/math/interpolants/QuaternionLinearInterpolant.js
+@@ -19,6 +19,7 @@
+ 	constructor( parameterPositions, sampleValues, sampleSize, resultBuffer ) {
+ 
+ 		super( parameterPositions, sampleValues, sampleSize, resultBuffer );
++		if ( sampleSize % 4 !== 0 ) throw new RangeError( 'THREE.QuaternionLinearInterpolant: Invalid sample size.' );
+ 
+ 	}
+ 
+@@ -32,7 +33,7 @@
+ 
+ 		let offset = i1 * stride;
+ 
+-		for ( let end = offset + stride; offset !== end; offset += 4 ) {
++		for ( let end = offset + stride; offset < end; offset += 4 ) {
+ 
+ 			Quaternion.slerpFlat( result, 0, values, offset - stride, values, offset, alpha );
+ 
+--- a/src/renderers/webgl/WebGLShadowMap.js
++++ b/src/renderers/webgl/WebGLShadowMap.js
+@@ -44,7 +44,7 @@
+ 		_depthMaterial = new MeshDepthMaterial(),
+ 		_distanceMaterial = new MeshDistanceMaterial(),
+ 
+-		_materialCache = {},
++		_materialCache = Object.create( null ),
+ 
+ 		_maxTextureSize = capabilities.maxTextureSize;
+ 
+@@ -455,7 +455,7 @@
+ 
+ 				if ( materialsForVariant === undefined ) {
+ 
+-					materialsForVariant = {};
++					materialsForVariant = Object.create( null );
+ 					_materialCache[ keyA ] = materialsForVariant;
+ 
+ 				}
+@@ -593,7 +593,7 @@
+ 
+ 			const uuid = event.target.uuid;
+ 
+-			if ( uuid in cache ) {
++			if ( Object.hasOwn( cache, uuid ) ) {
+ 
+ 				const shadowMaterial = cache[ uuid ];
+ 				shadowMaterial.dispose();

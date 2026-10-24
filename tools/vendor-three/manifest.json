@@ -1,0 +1,32 @@
+{
+  "node": "v24.15.0",
+  "npm": "11.12.1",
+  "dependencies": {
+    "qunit": "2.25.0",
+    "rollup": "4.63.1",
+    "terser": "5.51.2"
+  },
+  "package_lock_sha256": "8403bcbeeb61056b8170115a75c1eccae744ee45c4df902ed87b81ead2376fb4",
+  "rollup_source_sha256": "f70abf732e309ca1e1276448c3dbbe1d66e8e6922ea9c13f529daa4c301b151e",
+  "security_patch_sha256": "afe1ac5363cd9ae6e6a79b2cc2bbfa747b64ace442f334d9d490da818c1c146a",
+  "output_sha256": {
+    "LICENSE": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc",
+    "three.core.js": "5a1b040d04beea22eca2154c56eb906c84ebb6ecfc81f73fcce66bf2fd828740",
+    "three.module.min.js": "f089a4f01af8133044e7f4c7af9f264ba3e58c232da9c2162162223994338363"
+  },
+  "baseline_sha256": {
+    "LICENSE": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc",
+    "three.core.js": "3b346151f65ffdfca3e4c002bd58966b78c423087fb48a873f83200de1bffc48",
+    "three.module.min.js": "3bc833fceb6577bd1a380388f832ae61cd6e2f78ad02b0bf0d5adf5a4a9334fe"
+  },
+  "maintenance_source_sha256": {
+    "build.py": "3cb76b293eddc58ff8190acfa3d9f2c4d873157895a9d9d4644c635bbf8d7409",
+    "prepare_upstream_tests.py": "7eac2c70f47cd195e2376902138af247f323d5b6a2dcfbda02d84e85df258497",
+    "regression.mjs": "4f3e4ecfe7663bc3d075c41198a6648ce6dd835a07f0b17add77ee3449f165cb",
+    "rollup.mjs": "f70abf732e309ca1e1276448c3dbbe1d66e8e6922ea9c13f529daa4c301b151e",
+    "security.patch": "afe1ac5363cd9ae6e6a79b2cc2bbfa747b64ace442f334d9d490da818c1c146a",
+    "shadow_regression.py": "ad65db09ea5ec0908829826bf9c795114924a4cbb5b43d16e0fee8fd3122fa63",
+    "upstream-fixtures.patch": "9bdd2713dacfe5455c47ae3766b6762c5c778d07ae11d1ce1e21c2f81d1d306f",
+    "upstream_tests.mjs": "13a2efcbbd40da79de1e57388a37abd9f2c7efc9773f4dc6c4962cd873065fa5"
+  }
+}

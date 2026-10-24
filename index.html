@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Afterglow</title>
+  <meta name="description" content="A road through a mountain valley at dusk, drawn a frame at a time in WebGL.">
+  <meta name="theme-color" content="#0a0d0d">
+  <!-- ?lang=zh (Traditional Chinese), ja, ko, es or fr sets that language beside the English in the panel. -->
+  <script>
+    (() => {
+      const lang = new URLSearchParams(location.search).get('lang');
+      if (['zh', 'ja', 'ko', 'es', 'fr'].includes(lang)) document.documentElement.setAttribute('data-beside', lang);
+    })();
+  </script>
+  <link rel="preload" href="fonts/Newsreader.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <!-- Three.js is kept beside the scene: nothing on this page is fetched from anywhere else. -->
+  <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.min.js" } }</script>
+</head>
+<body>
+
+  <!-- The road. Everything on it is drawn by src/, a frame at a time. -->
+  <canvas class="road" id="road" aria-hidden="true"></canvas>
+
+  <!-- Two words in the corners, laid over the picture. The only writing here, until Tune is pressed. -->
+  <div class="corners">
+    <span class="corners__name">Afterglow</span>
+    <button class="corners__tune" type="button" id="tune-open" aria-expanded="false" aria-controls="tune">Tune<span lang="zh-Hant">調整</span><span lang="ja">調整</span><span lang="ko">조정</span><span lang="es">Ajustes</span><span lang="fr">Réglages</span></button>
+  </div>
+
+  <!-- Tune: the scene's numbers, for whoever wants to turn them. src/tune.js fills it in. -->
+  <aside class="tune" id="tune" aria-label="Tune"></aside>
+
+  <main class="sr-only">
+    <h1>Afterglow</h1>
+    <p>A two-lane road through a mountain valley in North America, at dusk. Dark conifers on both sides, snow on the far peaks still lit. The view moves slowly forward along the road and does not stop.</p>
+  </main>
+
+  <p class="road__none" id="road-none" hidden>This page is a drawing of a road, and this browser cannot draw it.</p>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

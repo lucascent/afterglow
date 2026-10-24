@@ -1,0 +1,61 @@
+{
+  "security_patch_sha256": "afe1ac5363cd9ae6e6a79b2cc2bbfa747b64ace442f334d9d490da818c1c146a",
+  "upstream_fixture_patch_sha256": "9bdd2713dacfe5455c47ae3766b6762c5c778d07ae11d1ce1e21c2f81d1d306f",
+  "files": {
+    "src/animation/AnimationMixer.js": {
+      "upstream_sha256": "7b05af5507aa4edfe3d6b5debcda23c8f0d9b910928debff7fc50748954d533c",
+      "patched_sha256": "0666ae3ed8589b7cf232d39010b958748105271338c5ca92a0613b08ccfc145d"
+    },
+    "src/animation/AnimationUtils.js": {
+      "upstream_sha256": "06797fe16422e2419dc8d0126415ee691dcf8986393031592872e40da62706fe",
+      "patched_sha256": "42f5759824e0428888e8cfcd7a9ce041a93c24c821fca663119322cbf9867d8e"
+    },
+    "src/animation/KeyframeTrack.js": {
+      "upstream_sha256": "71bc409cefc15f999bd5599c8c8ee849598f845adae45f84950d68ef8ceb6469",
+      "patched_sha256": "543c42e33fd0c8745b4dbe39c3f5400306dc105b76e9fa0bf450463d66b04169"
+    },
+    "src/animation/PropertyBinding.js": {
+      "upstream_sha256": "2130038f275f69a5be6e9654a44f65f239c5cceab71af1ac8e3490721733e81a",
+      "patched_sha256": "765ee6a679f3f56b8aace497a44828026a954bd0c34caeeb7f2c00955da85cf7"
+    },
+    "src/animation/PropertyMixer.js": {
+      "upstream_sha256": "c76a791999a707e39d231ead8cca86492e63f230971fa7d7970b5342b06e771b",
+      "patched_sha256": "d6ab16af35045eb2fba831b9fe04221a37000ca4d640ecfd31027ae470d75484"
+    },
+    "src/extras/curves/EllipseCurve.js": {
+      "upstream_sha256": "12b415fb8126097f037a5ca0238c82f9cdbd45eb2abed2e5cb1cbbcce814f37a",
+      "patched_sha256": "eb5d655b05b2301191da1004410d2afd3b0f87d8cc6700da70a6c103f8aba89b"
+    },
+    "src/math/Interpolant.js": {
+      "upstream_sha256": "2eb2f374fd85baf1f59f84b8f786c9def614c8f60777cb7e697fadd5c3464704",
+      "patched_sha256": "6f31ddad8e10ded67421904d6b0d66c5471f75b7bb6b8d6416ac7338bc53fe73"
+    },
+    "src/math/interpolants/BezierInterpolant.js": {
+      "upstream_sha256": "1735ac27171c34cda1e033a31b66eac73db35ec299c913cc6d031f0c5b1115de",
+      "patched_sha256": "a63d309117ca8ac93544790631f7cd7dcb7a1597eff1c258648e4b9e69ad0195"
+    },
+    "src/math/interpolants/CubicInterpolant.js": {
+      "upstream_sha256": "71bb5bda3a58436b64778158c8501f843de7980ce8f86ce5ecd7e4457d997ca3",
+      "patched_sha256": "25cb7bd47557eea7d51657f45e8aefb2f3353e1b3c9185b07d340ac70a4abc0b"
+    },
+    "src/math/interpolants/LinearInterpolant.js": {
+      "upstream_sha256": "bb7c547eb069694e795fe360fd68b4925e2427793eca7b997e4558513bad5d49",
+      "patched_sha256": "1008f3319c0b0257efcf0cea85ab19560baab4539db5da904dae96d1008ae0e2"
+    },
+    "src/math/interpolants/QuaternionLinearInterpolant.js": {
+      "upstream_sha256": "0ba036b170bf0260b0a863ba21fd3f101302bab9102583b11e6ad9d2c119d659",
+      "patched_sha256": "fee06d54356d23ffca3bd7b4090f4cb3952f16ef0fa7092510ad7cf2de595a35"
+    },
+    "src/renderers/webgl/WebGLShadowMap.js": {
+      "upstream_sha256": "88669e97ab02b2132a175eb94f9bfeea2a705d5f6c59e677bcb6421f258ff696",
+      "patched_sha256": "2d0c64d534aa1c4dc73bdb6707630ab176c4c60e05455e338cef238bc84062aa"
+    }
+  },
+  "invariants": [
+    "PropertyBinding rejects reflective segments at parser, supplied parsedPath and bind; caller-selected lookups are own properties except explicitly allowlisted accessors on real library math/material instances.",
+    "All AnimationMixer UUID/name dictionary levels have null prototypes.",
+    "Track, interpolant and property mixer dimensions must be positive safe integers; quaternion dimensions must be multiples of four; interpolant dimensions cannot exceed actual sample length; stride copies are bounded.",
+    "Ellipse angles and difference must be finite; angular reduction is constant time and preserves zero/full-circle/clockwise behavior.",
+    "Both WebGL shadow material cache levels have null prototypes; disposal tests own membership."
+  ]
+}
